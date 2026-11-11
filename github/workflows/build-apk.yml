@@ -1,4 +1,4 @@
-name: Build DamiSam Launcher from uploaded ZIP
+name: Build DamiSam Launcher APK
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [ main ]
     paths:
       - '*.zip'
-      - '.github/workflows/build-apk.yml'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -25,12 +25,11 @@ jobs:
           set -euo pipefail
           mapfile -t archives < <(find "$GITHUB_WORKSPACE" -maxdepth 1 -type f -iname '*.zip' -print)
           if [ "${#archives[@]}" -eq 0 ]; then
-            echo "No project ZIP found in the repository root."
-            echo "Upload GoldDeskLauncher.zip to the root of the repository."
+            echo "No project ZIP found in the repository root. Upload DamiSam-Launcher-Project.zip."
             exit 1
           fi
           if [ "${#archives[@]}" -gt 1 ]; then
-            echo "More than one ZIP was found in the repository root. Keep only the project ZIP."
+            echo "More than one ZIP was found in the repository root. Keep only the DamiSam project ZIP."
             printf '%s\n' "${archives[@]}"
             exit 1
           fi
@@ -40,11 +39,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/golddesk-extracted"
-          unzip -q "${{ steps.archive.outputs.zip }}" -d "$RUNNER_TEMP/golddesk-extracted"
-          PROJECT_DIR="$(find "$RUNNER_TEMP/golddesk-extracted" -type f -name settings.gradle.kts -print -quit | xargs -r dirname)"
+          mkdir -p "$RUNNER_TEMP/damisam-extracted"
+          unzip -q "${{ steps.archive.outputs.zip }}" -d "$RUNNER_TEMP/damisam-extracted"
+          PROJECT_DIR="$(find "$RUNNER_TEMP/damisam-extracted" -type f -name settings.gradle.kts -print -quit | xargs -r dirname)"
           if [ -z "$PROJECT_DIR" ] || [ ! -f "$PROJECT_DIR/app/build.gradle.kts" ]; then
-            echo "The ZIP does not contain a valid GoldDesk Android project."
+            echo "The ZIP does not contain a valid DamiSam Android project."
             exit 1
           fi
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
@@ -65,8 +64,10 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Set up Gradle
+      - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Build debug APK
         working-directory: ${{ env.PROJECT_DIR }}
